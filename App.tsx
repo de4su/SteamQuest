@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [steamUser, setSteamUser] = useState<SteamUser | null>(null);
   const [retryInfo, setRetryInfo] = useState<{ attempt: number; max: number } | null>(null);
+  const [validationProgress, setValidationProgress] = useState<{ completed: number; total: number } | null>(null);
   const lastActionRef = useRef<(() => void) | null>(null);
 
   // RAWG results state
@@ -65,13 +66,17 @@ const App: React.FC = () => {
     setView('loading');
     setError(null);
     setRetryInfo(null);
+    setValidationProgress(null);
     lastActionRef.current = () => handleQuizComplete(answers);
     try {
       const data = await getGameRecommendations(answers, steamUser?.steamId, (attempt, max) => {
         setRetryInfo({ attempt, max });
+      }, (completed, total) => {
+        setValidationProgress({ completed, total });
       });
       lastActionRef.current = null;
       setRetryInfo(null);
+      setValidationProgress(null);
       setResults(data);
       setView('results');
     } catch (err: unknown) {
@@ -258,6 +263,11 @@ const App: React.FC = () => {
               <div className="w-20 h-20 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-8 shadow-[0_0_30px_rgba(37,99,235,0.3)]"></div>
               <h3 className="text-2xl font-black text-white tracking-widest uppercase">Querying Steam Database...</h3>
               <p className="text-gray-300 mt-2">Determining playtimes and compatibility scores</p>
+              {validationProgress && (
+                <p className="text-blue-400 mt-3 text-sm font-mono">
+                  Validating games… ({validationProgress.completed}/{validationProgress.total})
+                </p>
+              )}
               {retryInfo && (
                 <p className="text-yellow-400 mt-3 text-sm font-mono">
                   Retrying… (attempt {retryInfo.attempt} of {retryInfo.max})

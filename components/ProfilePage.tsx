@@ -249,10 +249,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack }) => {
         title: game.title,
         imageUrl: game.imageUrl ?? `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/header.jpg`,
         platforms: ['PC'],
-        matchScore: game.suitabilityScore,
+        suitabilityScore: game.suitabilityScore,
         mainStoryTime: game.mainStoryTime > 0 ? game.mainStoryTime : null,
+        completionistTime: game.completionistTime > 0 ? game.completionistTime : null,
         steamPlaytimeMinutes: stats?.playtimeMinutes ?? null,
         achievements: ach,
+        reasonForPick: game.reasonForPick || null,
       };
     });
     // Include the genres chosen for this quiz session in the export header strip
@@ -287,10 +289,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack }) => {
         title: fav.game_title,
         imageUrl: fav.game_image,
         platforms,
-        matchScore: null,
+        suitabilityScore: null,
         mainStoryTime: mainTime,
+        completionistTime: null,
         steamPlaytimeMinutes: stats?.playtimeMinutes ?? null,
         achievements: ach,
+        genres: [],
+        reasonForPick: null,
       };
     });
     setExportCard({ games: cardGames, label: 'My Wishlist' });

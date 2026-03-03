@@ -32,13 +32,17 @@ export interface CardGame {
   /** Platform labels to show (e.g. ['PC'] or ['PC', 'PlayStation']) */
   platforms: string[];
   /** Suitability / match percentage (0-100), null if not applicable */
-  matchScore: number | null;
+  suitabilityScore: number | null;
   /** How-Long-To-Beat main story hours */
   mainStoryTime: number | null;
+  /** How-Long-To-Beat completionist hours */
+  completionistTime: number | null;
   /** Steam actual playtime in minutes (from the user's library) */
   steamPlaytimeMinutes: number | null;
   /** Achievement progress string, e.g. "12 / 47", or "N/A" */
   achievements: string | null;
+  /** AI-generated reason for this pick, displayed in italic */
+  reasonForPick: string | null;
 }
 
 interface ExportableCardProps {
@@ -153,7 +157,7 @@ const ExportableCard: React.FC<ExportableCardProps> = ({ user, games, label, gen
         <div
           ref={cardRef}
           style={{
-            width: 560,
+            width: 640,
             background: 'linear-gradient(135deg, #0e1521 0%, #1b2838 60%, #0e1521 100%)',
             borderRadius: 16,
             overflow: 'hidden',
@@ -271,19 +275,19 @@ const ExportableCard: React.FC<ExportableCardProps> = ({ user, games, label, gen
                   flexDirection: 'column',
                 }}
               >
-                {/* Cover art — 16:9 ratio */}
+                {/* Cover art — fixed height */}
                 {game.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={game.imageUrl}
                     alt={game.title}
-                    style={{ width: '100%', height: 90, objectFit: 'cover', display: 'block', flexShrink: 0 }}
+                    style={{ width: '100%', height: 150, objectFit: 'cover', display: 'block', flexShrink: 0 }}
                   />
                 ) : (
                   <div
                     style={{
                       width: '100%',
-                      height: 90,
+                      height: 150,
                       background: 'rgba(255,255,255,0.05)',
                       flexShrink: 0,
                     }}
@@ -291,14 +295,12 @@ const ExportableCard: React.FC<ExportableCardProps> = ({ user, games, label, gen
                 )}
 
                 {/* Tile info */}
-                <div style={{ padding: '6px 7px', flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <div style={{ padding: '7px 8px', flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
                   {/* Title */}
                   <div
                     style={{
-                      fontSize: 9,
-                      fontWeight: 800,
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.3,
+                      fontSize: 11,
+                      fontWeight: 700,
                       overflow: 'hidden',
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
@@ -309,38 +311,56 @@ const ExportableCard: React.FC<ExportableCardProps> = ({ user, games, label, gen
                     {game.title}
                   </div>
 
-                  {/* Secondary info row: platform */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-                    {/* Platform badge (first platform only for space) */}
-                    {game.platforms.length > 0 && (
-                      <span
-                        style={{
-                          background: 'rgba(102,192,244,0.12)',
-                          border: '1px solid rgba(102,192,244,0.25)',
-                          color: '#66c0f4',
-                          borderRadius: 3,
-                          padding: '1px 4px',
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          fontSize: 7,
-                        }}
-                      >
-                        {game.platforms[0]}
-                      </span>
-                    )}
+                  {/* Playtime line */}
+                  {(() => {
+                    const hasMain = game.mainStoryTime !== null && game.mainStoryTime > 0;
+                    const hasComp = game.completionistTime !== null && game.completionistTime > 0;
+                    return (
+                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {hasMain && <span>⏱ {game.mainStoryTime}h</span>}
+                        {hasMain && hasComp && <span>|</span>}
+                        {hasComp && <span>🎯 {game.completionistTime}h</span>}
+                      </div>
+                    );
+                  })()}
 
-                  </div>
+                  {/* Spacer */}
+                  <div style={{ flex: 1 }} />
 
-                  {/* Playtime / achievements */}
-                  <div style={{ fontSize: 7, color: 'rgba(255,255,255,0.4)', display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                    {/* Actual Steam playtime takes priority over HLTB estimate */}
-                    {game.steamPlaytimeMinutes !== null && game.steamPlaytimeMinutes > 0 ? (
-                      <span>🎮 {formatMinutes(game.steamPlaytimeMinutes)}</span>
-                    ) : game.mainStoryTime !== null && game.mainStoryTime > 0 ? (
-                      <span>⏱ ~{game.mainStoryTime}h</span>
-                    ) : null}
-                    {game.achievements && <span>🏆 {game.achievements}</span>}
-                  </div>
+                  {/* Reason for pick */}
+                  {game.reasonForPick && (
+                    <div
+                      style={{
+                        fontSize: 8,
+                        color: 'rgba(255,255,255,0.38)',
+                        fontStyle: 'italic',
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      "{game.reasonForPick}"
+                    </div>
+                  )}
+
+                  {/* Spacer */}
+                  <div style={{ flex: 1 }} />
+
+                  {/* Match score (quiz only) */}
+                  {game.suitabilityScore !== null && (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#66c0f4' }}>
+                      {game.suitabilityScore}% Match
+                    </div>
+                  )}
+
+                  {/* Achievements */}
+                  {game.achievements && (
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>
+                      🏆 {game.achievements}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

@@ -452,6 +452,7 @@ export const getGameRecommendations = async (
   answers: QuizAnswers,
   steamId?: string,
   onRetry?: (attempt: number, maxRetries: number) => void,
+  onProgress?: (completed: number, total: number) => void,
 ): Promise<RecommendationResponse> => {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
   if (!apiKey) {
@@ -537,52 +538,61 @@ Among Us=945360, Fall Guys=1097150, Phasmophobia=739630, Lethal Company=1966720`
     const rawGames: any[] = parsed.recommendations;
     console.info("[getGameRecommendations] Received " + rawGames.length + " raw game(s) from Groq.");
 
-    const enrichedGames: GameRecommendation[] = [];
+    // Filter out invalid entries before parallel enrichment
+    const validGames = rawGames.filter((game, idx) => validateRawGame(game, idx));
 
-    for (let idx = 0; idx < rawGames.length; idx++) {
-      const game = rawGames[idx];
+    let completedCount = 0;
 
-      // Validate required fields before enrichment
-      if (!validateRawGame(game, idx)) continue;
+    // Enrich each game in parallel — all 3 hallucination checks preserved inside resolveGameToSteam
+    const enrichResults = await Promise.allSettled(
+      validGames.map(async (game) => {
+        const aiTitle: string = (game.aiTitle || game.title || "").trim();
+        const candidateAppId: string = typeof game.steamAppId === "string" ? game.steamAppId.trim() : "";
 
-      const aiTitle: string = (game.aiTitle || game.title || "").trim();
-      const candidateAppId: string = typeof game.steamAppId === "string" ? game.steamAppId.trim() : "";
+        console.info("[getGameRecommendations] Processing: '" + aiTitle + "' (candidate App ID: " + (candidateAppId || "none") + ")");
 
-      console.info("[getGameRecommendations] Processing game " + (idx + 1) + "/" + rawGames.length + ": '" + aiTitle + "' (candidate App ID: " + (candidateAppId || "none") + ")");
+        const resolved = await resolveGameToSteam(aiTitle, candidateAppId);
 
-      const resolved = await resolveGameToSteam(aiTitle, candidateAppId);
+        completedCount++;
+        onProgress?.(completedCount, validGames.length);
 
-      if (!resolved) {
-        console.warn("[getGameRecommendations] Dropping game '" + aiTitle + "' - could not resolve to confirmed Steam App ID.");
-        continue;
-      }
+        if (!resolved) {
+          console.warn("[getGameRecommendations] Dropping game '" + aiTitle + "' - could not resolve to confirmed Steam App ID.");
+          return null;
+        }
 
-      const { appId, details } = resolved;
-      const ggDealsInfo = await fetchGGDealsInfo(appId, details.title);
+        const { appId, details } = resolved;
+        const ggDealsInfo = await fetchGGDealsInfo(appId, details.title);
 
-      // Apply enrichment with type-guarded fallbacks for optional fields
-      const enriched: GameRecommendation = {
-        ...game,
-        steamAppId: appId,
-        title: details.title,
-        description: details.description,
-        developer: details.developer,
-        imageUrl: getSteamImageUrl(appId),
-        steamPrice: details.steamPrice,
-        cheapestPrice: ggDealsInfo.cheapestPrice,
-        dealUrl: ggDealsInfo.dealUrl,
-        id: typeof game.id === "string" && game.id.trim() ? game.id : appId,
-        genres: Array.isArray(game.genres) ? game.genres.filter((g: any) => typeof g === "string") : [],
-        tags: Array.isArray(game.tags) ? game.tags.filter((t: any) => typeof t === "string") : [],
-        mainStoryTime: typeof game.mainStoryTime === "number" ? game.mainStoryTime : 0,
-        completionistTime: typeof game.completionistTime === "number" ? game.completionistTime : 0,
-        suitabilityScore: typeof game.suitabilityScore === "number" ? game.suitabilityScore : 0,
-        reasonForPick: typeof game.reasonForPick === "string" ? game.reasonForPick : "",
-      };
+        // Apply enrichment with type-guarded fallbacks for optional fields
+        const enriched: GameRecommendation = {
+          ...game,
+          steamAppId: appId,
+          title: details.title,
+          description: details.description,
+          developer: details.developer,
+          imageUrl: getSteamImageUrl(appId),
+          steamPrice: details.steamPrice,
+          cheapestPrice: ggDealsInfo.cheapestPrice,
+          dealUrl: ggDealsInfo.dealUrl,
+          id: typeof game.id === "string" && game.id.trim() ? game.id : appId,
+          genres: Array.isArray(game.genres) ? game.genres.filter((g: any) => typeof g === "string") : [],
+          tags: Array.isArray(game.tags) ? game.tags.filter((t: any) => typeof t === "string") : [],
+          mainStoryTime: typeof game.mainStoryTime === "number" ? game.mainStoryTime : 0,
+          completionistTime: typeof game.completionistTime === "number" ? game.completionistTime : 0,
+          suitabilityScore: typeof game.suitabilityScore === "number" ? game.suitabilityScore : 0,
+          reasonForPick: typeof game.reasonForPick === "string" ? game.reasonForPick : "",
+        };
 
-      enrichedGames.push(enriched);
-      console.info("[getGameRecommendations] Successfully enriched: '" + details.title + "' (App ID: " + appId + ")");
-    }
+        console.info("[getGameRecommendations] Successfully enriched: '" + details.title + "' (App ID: " + appId + ")");
+        return enriched;
+      })
+    );
+
+    const enrichedGames: GameRecommendation[] = enrichResults
+      .filter((r): r is PromiseFulfilledResult<GameRecommendation | null> => r.status === "fulfilled")
+      .map((r) => r.value)
+      .filter((g): g is GameRecommendation => g !== null);
 
     console.info("[getGameRecommendations] Enrichment complete. " + enrichedGames.length + "/" + rawGames.length + " games resolved.");
 
