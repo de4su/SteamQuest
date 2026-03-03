@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <link rel="icon" href="/logo.png" type="image/png">
+    <title>SteamQuest: Discovery Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --steam-blue: #66c0f4;
+            --neon-blue: #00d2ff;
+            --steam-dark: #171a21;
+            --steam-navy: #1b2838;
+            --hex-height: 120px;
+            --hex-width: 104px;
+            --hex-gap: 2px;
+            --row-offset: 28px;
+            
+            --mv-x1: 50px; --mv-y1: -80px;
+            --mv-x2: 80px; --mv-y2: 40px;
+            --mv-x3: -40px; --mv-y3: 60px;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--steam-dark); 
+            color: #c7d5e0;
+            overflow-x: hidden;
+            margin: 0;
+        }
+        .steam-card {
+            background-color: rgba(22, 32, 45, 0.9);
+            border: 1px solid rgba(102, 192, 244, 0.1);
+            backdrop-filter: blur(16px);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            pointer-events: auto;
+        }
+        .font-stats {
+            font-family: 'Space Mono', monospace;
+        }
+
+        .hex-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            overflow: hidden;
+            background: radial-gradient(circle at center, var(--steam-navy) 0%, var(--steam-dark) 100%);
+            pointer-events: none; /* JS will track through this */
+        }
+        
+        @keyframes scrollBackgroundRoaming {
+            0% { transform: translate(0, 0) scale(1.15) translateZ(0); }
+            25% { transform: translate(var(--mv-x1), var(--mv-y1)) scale(1.18) translateZ(0); }
+            50% { transform: translate(var(--mv-x2), var(--mv-y2)) scale(1.15) translateZ(0); }
+            75% { transform: translate(var(--mv-x3), var(--mv-y3)) scale(1.18) translateZ(0); }
+            100% { transform: translate(0, 0) scale(1.15) translateZ(0); }
+        }
+
+        @keyframes neonPulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.7; }
+        }
+
+        .hex-grid {
+            display: flex;
+            flex-direction: column;
+            gap: var(--hex-gap);
+            padding: 100px;
+            animation: scrollBackgroundRoaming 45s ease-in-out infinite;
+            position: absolute;
+            top: -300px;
+            left: -300px;
+            width: 180vw;
+            height: 180vh;
+            will-change: transform;
+        }
+        
+        .hex-row {
+            display: flex;
+            gap: var(--hex-gap);
+            margin-bottom: calc(-1 * var(--row-offset));
+        }
+        .hex-row:nth-child(even) {
+            margin-left: calc(var(--hex-width) / 2 + var(--hex-gap) / 2);
+        }
+        .hex {
+            width: var(--hex-width);
+            height: var(--hex-height);
+            background: var(--neon-blue);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            transition: transform 0.4s ease, opacity 0.4s ease;
+            position: relative;
+            flex-shrink: 0;
+            pointer-events: auto; /* individual hexes can be found by JS */
+            will-change: transform, opacity;
+            animation: neonPulse 4s infinite ease-in-out;
+            animation-delay: calc(var(--delay, 0) * 1s);
+            contain: layout style paint;
+        }
+
+        /* Hover + JS-forced hover styles */
+        .hex:hover,
+        .hex.is-hovered {
+            background: #fff; 
+            transform: scale(1.25) rotate(2deg) translateZ(0);
+            z-index: 50;
+            opacity: 1 !important;
+            box-shadow: 0 0 25px var(--neon-blue), 0 0 50px rgba(0, 210, 255, 0.5);
+            animation: none;
+        }
+
+        .hex-content {
+            position: absolute;
+            inset: 1px; 
+            background: #0b0d12;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            contain: strict;
+        }
+        .hex-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transform: scale(1.3) translateZ(0);
+            transition: all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+            will-change: transform, opacity;
+        }
+
+        /* Reveal image on hover OR JS-forced hover */
+        .hex:hover .hex-image,
+        .hex.is-hovered .hex-image {
+            opacity: 1;
+            transform: scale(1) translateZ(0);
+        }
+        
+        .vignette {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 10%, var(--steam-dark) 95%);
+            z-index: 2;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-results {
+            animation: slideUp 0.7s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+        }
+
+        #root {
+            position: relative;
+            z-index: 10;
+        }
+
+        button, a, input, select, textarea {
+            position: relative;
+            z-index: 15;
+        }
+
+        /* Welcome page - text stays forever */
+        .welcome-container {
+            animation: welcomeFadeIn 0.7s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+        }
+
+        @keyframes welcomeFadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .welcome-title, .welcome-subtitle {
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* Quiz wrapper - transparent to mouse except interactive elements */
+        .quiz-wrapper {
+            pointer-events: none;
+        }
+
+        .quiz-wrapper * {
+            pointer-events: auto;
+        }
+
+        /* Quiz animations */
+        .quiz-fade-in {
+            animation: quizFadeIn 0.7s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+        }
+
+        @keyframes quizFadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .quiz-step-fade {
+            animation: stepFade 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+        }
+
+        @keyframes stepFade {
+            from { 
+                opacity: 0; 
+                transform: translateX(20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
