@@ -34,12 +34,6 @@ const GameCard: React.FC<GameCardProps> = ({ game, user }) => {
 
   const storeUrl = `https://store.steampowered.com/app/${game.steamAppId}`;
 
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-400 border-green-500 bg-green-500/20';
-    if (score >= 75) return 'text-blue-400 border-blue-500 bg-blue-500/20';
-    return 'text-yellow-400 border-yellow-500 bg-yellow-500/20';
-  };
-
   // Fetch media on first hover
   useEffect(() => {
     if (!isHovered) return;
@@ -121,14 +115,6 @@ const GameCard: React.FC<GameCardProps> = ({ game, user }) => {
             GALLERY
           </div>
         )}
-
-        <div
-          className={`absolute top-4 left-4 px-3 py-1 rounded-md border font-black text-xs z-10 backdrop-blur-xl ${getScoreColor(
-            game.suitabilityScore
-          )} shadow-lg`}
-        >
-          {game.suitabilityScore}% MATCH
-        </div>
 
       </div>
 

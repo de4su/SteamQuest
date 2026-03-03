@@ -309,7 +309,7 @@ const ExportableCard: React.FC<ExportableCardProps> = ({ user, games, label, gen
                     {game.title}
                   </div>
 
-                  {/* Secondary info row: platform + score */}
+                  {/* Secondary info row: platform */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
                     {/* Platform badge (first platform only for space) */}
                     {game.platforms.length > 0 && (
@@ -328,21 +328,7 @@ const ExportableCard: React.FC<ExportableCardProps> = ({ user, games, label, gen
                         {game.platforms[0]}
                       </span>
                     )}
-                    {/* Match score badge (only for quiz results) */}
-                    {game.matchScore !== null && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 900,
-                          color:
-                            game.matchScore >= 90 ? '#4caf50'
-                            : game.matchScore >= 75 ? '#64b5f6'
-                            : '#ffd54f',
-                        }}
-                      >
-                        {game.matchScore}%
-                      </span>
-                    )}
+
                   </div>
 
                   {/* Playtime / achievements */}

@@ -485,13 +485,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack }) => {
                                     )}
                                   </div>
                                 </div>
-                                {/* Match score */}
-                                <div className="shrink-0 text-right">
-                                  <span className={`text-sm font-black ${game.suitabilityScore >= 90 ? 'text-green-400' : game.suitabilityScore >= 75 ? 'text-blue-400' : 'text-yellow-400'}`}>
-                                    {game.suitabilityScore}%
-                                  </span>
-                                  <p className="text-gray-400 text-[10px]">match</p>
-                                </div>
                                 <div className="shrink-0 flex flex-col items-end gap-1.5">
                                   {/* "Already Owned" badge when the game is in the user's library */}
                                   {isGameOwned(game.steamAppId) ? (
