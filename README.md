@@ -13,7 +13,6 @@
 - **Live Steam Stats** — The Steam Stats tab on your profile shows total games, playtime, Steam level, recently played, and top played games — fetched live from the Steam API with Supabase caching.
 - **Exclude Owned Games** — Opt to remove games you already own on Steam from quiz recommendations (requires Steam login and a public Steam profile).
 - **"Already Owned" Badge** — Games you own on Steam are highlighted with a ✓ Owned badge in your quiz history and favorites, replacing the store links.
-- **Expanded Platform Icons** — All gaming platforms are shown with clear icons: 🖥️ PC, 🎮 PlayStation/Xbox, 🕹️ Nintendo, 📱 iOS/Android, and more — derived from real RAWG platform data.
 
 ## Search & Favorites — Primary Use Case
 
