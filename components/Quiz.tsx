@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { QuizAnswers, SteamUser } from '../types.ts';
+import { GENRES } from '../constants';
 
 interface QuizProps {
   onComplete: (answers: QuizAnswers) => void;
   user?: SteamUser | null;
 }
-
-const GENRES = ['Action', 'RPG', 'Strategy', 'Indie', 'Adventure', 'Simulation', 'Horror', 'Puzzle', 'Sports', 'Racing'];
 
 const Quiz: React.FC<QuizProps> = ({ onComplete, user }) => {
   const [step, setStep] = useState(0);

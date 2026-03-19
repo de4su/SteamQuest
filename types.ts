@@ -155,6 +155,14 @@ export interface CachedSteamStats {
   updatedAt: string;
 }
 
+// Per-app Steam live stats returned by /api/steam-playtime
+
+export interface SteamStats {
+  playtimeMinutes: number | null;
+  achievementsUnlocked: number | null;
+  achievementsTotal: number | null;
+}
+
 // Quiz history
 
 export interface QuizResultRecord {

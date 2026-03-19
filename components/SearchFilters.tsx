@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GameFilters } from '../types';
 import { fetchPlatforms, fetchGenres, fetchTags } from '../services/rawgService';
+import { ORDERING_OPTIONS } from '../constants';
 
 interface FilterOption {
   id: number;
@@ -16,16 +17,6 @@ interface SearchFiltersProps {
 }
 
 const MAX_DISPLAYED_TAGS = 20;
-
-const ORDERING_OPTIONS = [
-  { value: '', label: 'Relevance' },
-  { value: '-rating', label: 'Rating (High → Low)' },
-  { value: 'rating', label: 'Rating (Low → High)' },
-  { value: '-metacritic', label: 'Metacritic (High → Low)' },
-  { value: '-released', label: 'Newest First' },
-  { value: 'released', label: 'Oldest First' },
-  { value: '-added', label: 'Most Added' },
-];
 
 const SearchFilters: React.FC<SearchFiltersProps> = ({ filters, onChange, isOpen, onToggle }) => {
   const [platforms, setPlatforms] = useState<FilterOption[]>([]);

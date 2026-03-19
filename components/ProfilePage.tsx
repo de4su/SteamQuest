@@ -1,305 +1,32 @@
-import React, { useEffect, useState } from 'react';
-import { SteamUser, QuizResultRecord, FavoriteGame, CachedSteamStats } from '../types';
-import { supabase } from '../services/supabaseClient';
-import { getFavorites, removeFavorite } from '../services/favoritesService';
-import { getCachedSteamStats, saveSteamStats } from '../services/steamStatsService';
-import ExportableCard, { CardGame } from './ExportableCard';
+import React from 'react';
+import { SteamUser } from '../types';
+import ExportableCard from './ExportableCard';
+import TabButton from './TabButton';
+import { useProfileData } from '../hooks/useProfileData';
+import { PLATFORM_ICONS, COUNTRY_FLAGS } from '../constants';
+import { formatHours, relativeTime, toHours, formatSteamPlaytime } from '../utils/formatters';
 
 interface ProfilePageProps {
   user: SteamUser;
   onBack: () => void;
 }
 
-type ProfileTab = 'history' | 'favorites' | 'stats';
-
-/** Per-app Steam live stats returned by /api/steam-playtime */
-interface SteamStats {
-  playtimeMinutes: number | null;
-  achievementsUnlocked: number | null;
-  achievementsTotal: number | null;
-}
-
-/**
- * Maps RAWG parent_platform slugs to a short display label with emoji icon.
- * Used in the Favorites tab to show all real gaming platforms, not DB sources.
- */
-const PLATFORM_ICON: Record<string, string> = {
-  pc:          '🖥️ PC',
-  playstation: '🎮 PlayStation',
-  xbox:        '🎮 Xbox',
-  nintendo:    '🕹️ Nintendo',
-  ios:         '📱 iOS',
-  android:     '📱 Android',
-  mac:         '🍎 macOS',
-  linux:       '🐧 Linux',
-  web:         '🌐 Web',
-  atari:       '🕹️ Atari',
-  sega:        '🕹️ SEGA',
-};
-
-/**
- * Maps country code (ISO 3166-1 alpha-2) to a flag emoji.
- * Only the most common codes are listed; others render as the code itself.
- */
-const COUNTRY_FLAG: Record<string, string> = {
-  US: '🇺🇸', GB: '🇬🇧', DE: '🇩🇪', FR: '🇫🇷', RU: '🇷🇺', CA: '🇨🇦',
-  AU: '🇦🇺', BR: '🇧🇷', PL: '🇵🇱', NL: '🇳🇱', SE: '🇸🇪', NO: '🇳🇴',
-  FI: '🇫🇮', DK: '🇩🇰', TR: '🇹🇷', ES: '🇪🇸', IT: '🇮🇹', JP: '🇯🇵',
-  KR: '🇰🇷', CN: '🇨🇳', UA: '🇺🇦', CZ: '🇨🇿', HU: '🇭🇺', PT: '🇵🇹',
-  AR: '🇦🇷', MX: '🇲🇽', IN: '🇮🇳', BE: '🇧🇪', CH: '🇨🇭', AT: '🇦🇹',
-};
-
-/**
- * Format total playtime minutes as hours string, e.g. "2,083h".
- */
-function formatHours(minutes: number): string {
-  const h = Math.round(minutes / 60);
-  return `${h.toLocaleString()}h`;
-}
-
-/**
- * Return a human-readable relative time string, e.g. "3 hours ago".
- */
-function relativeTime(isoString: string): string {
-  const diff = Date.now() - new Date(isoString).getTime();
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 2) return 'just now';
-  if (minutes < 60) return `${minutes} minutes ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days !== 1 ? 's' : ''} ago`;
-}
-
 const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack }) => {
-  const [activeTab, setActiveTab] = useState<ProfileTab>('history');
-  const [history, setHistory] = useState<QuizResultRecord[]>([]);
-  const [favorites, setFavorites] = useState<FavoriteGame[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
-
-  // Steam live playtime / achievement data keyed by Steam appId string
-  const [steamStats, setSteamStats] = useState<Record<string, SteamStats>>({});
-
-  // Global Steam stats (batched) + Supabase cache state
-  const [globalStats, setGlobalStats] = useState<CachedSteamStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [statsError, setStatsError] = useState<string | null>(null);
-  const [statsFetched, setStatsFetched] = useState(false);
-  // Set of owned app IDs derived from globalStats for quick badge lookup
-  const [ownedAppIdSet, setOwnedAppIdSet] = useState<Set<string>>(new Set());
-
-  // Export card state — genres are passed for quiz exports to show the session header
-  const [exportCard, setExportCard] = useState<{ games: CardGame[]; label: string; genres?: string[] } | null>(null);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [{ data, error: fetchError }, favs] = await Promise.all([
-          supabase
-            .from('quiz_results')
-            .select('*')
-            .eq('steam_id', user.steamId)
-            .order('created_at', { ascending: false }),
-          getFavorites(user.steamId).catch(() => [] as FavoriteGame[]),
-        ]);
-
-        if (fetchError) throw fetchError;
-        const records = (data as QuizResultRecord[]) ?? [];
-        setHistory(records);
-        setFavorites(favs);
-
-        // Collect all Steam app IDs from quiz history and favorites so we can
-        // fetch real playtime and achievement data in a single API call.
-        const appIdSet = new Set<string>();
-        for (const record of records) {
-          for (const game of record.results.recommendations) {
-            if (game.steamAppId) appIdSet.add(String(game.steamAppId));
-          }
-        }
-        for (const fav of favs) {
-          if (fav.game_source === 'steam' && fav.game_id) appIdSet.add(String(fav.game_id));
-        }
-
-        if (appIdSet.size > 0) {
-          // Fetch live Steam playtime and achievement counts (best-effort;
-          // silently ignored if the profile is private or API is unavailable).
-          try {
-            const appidsParam = Array.from(appIdSet).join(',');
-            const r = await fetch(
-              `/api/steam-playtime?steamid=${user.steamId}&appids=${encodeURIComponent(appidsParam)}`
-            );
-            if (r.ok) {
-              const json = (await r.json()) as {
-                playtime: Record<string, SteamStats>;
-              };
-              setSteamStats(json.playtime ?? {});
-            }
-          } catch {
-            // Non-fatal: Steam stats are supplemental and optional
-          }
-        }
-      } catch (err: unknown) {
-        console.error('Failed to fetch profile data:', err);
-        setError('Failed to load profile data. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
-  }, [user.steamId]);
-
-  // Lazy-load global stats when the user first opens the Stats tab
-  useEffect(() => {
-    if (activeTab === 'stats' && !statsFetched) {
-      void loadGlobalStats();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
-
-  const handleRemoveFavorite = async (fav: FavoriteGame) => {
-    try {
-      await removeFavorite(user.steamId, fav.game_id, fav.game_source);
-      setFavorites((prev) => prev.filter((f) => f.id !== fav.id));
-    } catch (err) {
-      console.error('Failed to remove favorite:', err);
-    }
-  };
-
-  /** Apply loaded global stats and derive the owned-app-id set */
-  const applyGlobalStats = (stats: CachedSteamStats) => {
-    setGlobalStats(stats);
-    setOwnedAppIdSet(new Set(stats.ownedAppIds.map(String)));
-  };
-
-  /** Load global stats: try Supabase cache first, then API. */
-  const loadGlobalStats = async () => {
-    setStatsLoading(true);
-    setStatsError(null);
-    try {
-      const cached = await getCachedSteamStats(user.steamId);
-      if (cached) {
-        applyGlobalStats(cached);
-      } else {
-        const r = await fetch(`/api/steam-stats?steamid=${user.steamId}`);
-        if (!r.ok) throw new Error('API error');
-        const data = (await r.json()) as Omit<CachedSteamStats, 'updatedAt'>;
-        const withTs: CachedSteamStats = { ...data, updatedAt: new Date().toISOString() };
-        await saveSteamStats(user.steamId, withTs);
-        applyGlobalStats(withTs);
-      }
-    } catch {
-      setStatsError('Could not load Steam stats. Your profile may be private, or the API is temporarily unavailable.');
-    } finally {
-      setStatsLoading(false);
-      setStatsFetched(true);
-    }
-  };
-
-  /** Force-refresh stats from the API, bypassing cache. */
-  const handleRefreshStats = async () => {
-    setStatsLoading(true);
-    setStatsError(null);
-    try {
-      const r = await fetch(`/api/steam-stats?steamid=${user.steamId}`);
-      if (!r.ok) throw new Error('API error');
-      const data = (await r.json()) as Omit<CachedSteamStats, 'updatedAt'>;
-      const withTs: CachedSteamStats = { ...data, updatedAt: new Date().toISOString() };
-      await saveSteamStats(user.steamId, withTs);
-      applyGlobalStats(withTs);
-    } catch {
-      setStatsError('Refresh failed. Please try again later.');
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
-  /** Format a Steam playtime stat for display, e.g. "2.5h played" */
-  const formatSteamPlaytime = (minutes: number): string => {
-    if (minutes < 60) return `${minutes}m played`;
-    const h = (minutes / 60).toFixed(1);
-    return `${h}h played`;
-  };
-
-  /** Format minutes as a decimal hours string, e.g. "12.3h" */
-  const toHours = (minutes: number): string => `${Math.round((minutes / 60) * 10) / 10}h`;
-
-  /** Return true when the user owns the game (via per-app stats or ownedAppIdSet). */
-  const isGameOwned = (appId: string | number): boolean => {
-    const key = String(appId);
-    const appStats = steamStats[key];
-    return (appStats?.playtimeMinutes !== null && appStats?.playtimeMinutes !== undefined) ||
-      ownedAppIdSet.has(key);
-  };
-
-  /** Build the export payload for a quiz result record and open the card modal */
-  const handleExportQuizCard = (record: QuizResultRecord) => {
-    const cardGames: CardGame[] = record.results.recommendations.map((game) => {
-      const stats = steamStats[String(game.steamAppId)];
-      // Show achievement progress string, or "N/A" when the game has no tracked achievements
-      const ach =
-        stats?.achievementsUnlocked !== null && stats?.achievementsTotal !== null && stats.achievementsTotal > 0
-          ? `${stats.achievementsUnlocked} / ${stats.achievementsTotal}`
-          : stats !== undefined
-          ? 'N/A'
-          : null;
-      return {
-        title: game.title,
-        imageUrl: game.imageUrl ?? `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/header.jpg`,
-        platforms: ['PC'],
-        suitabilityScore: game.suitabilityScore,
-        mainStoryTime: game.mainStoryTime > 0 ? game.mainStoryTime : null,
-        completionistTime: game.completionistTime > 0 ? game.completionistTime : null,
-        steamPlaytimeMinutes: stats?.playtimeMinutes ?? null,
-        achievements: ach,
-        reasonForPick: game.reasonForPick || null,
-      };
-    });
-    // Include the genres chosen for this quiz session in the export header strip
-    setExportCard({ games: cardGames, label: 'Quiz Results', genres: record.answers.preferredGenres });
-  };
-
-  /** Build the export payload for the favorites/wishlist and open the card modal */
-  const handleExportFavoritesCard = () => {
-    const cardGames: CardGame[] = favorites.map((fav) => {
-      const isSteam = fav.game_source === 'steam';
-      const data = fav.game_data as Record<string, unknown> | null;
-
-      // Platforms: 'PC' for Steam games; parent_platform names for RAWG.
-      // Always include PC first if the RAWG game is available on PC.
-      const rawgParents = (data?.parent_platforms as Array<{ platform: { slug: string; name: string } }> | undefined) ?? [];
-      const platforms: string[] = isSteam
-        ? ['PC']
-        : rawgParents.slice(0, 3).map((p) => PLATFORM_ICON[p.platform.slug] ?? p.platform.name);
-
-      const mainTime = isSteam ? (data?.mainStoryTime as number | undefined) ?? null : null;
-      const stats = isSteam ? steamStats[String(fav.game_id)] : undefined;
-
-      // Achievements: real progress string, "N/A" if Steam game but no data, null for RAWG
-      const ach =
-        stats?.achievementsUnlocked !== null && stats?.achievementsTotal !== null && stats.achievementsTotal > 0
-          ? `${stats.achievementsUnlocked} / ${stats.achievementsTotal}`
-          : isSteam
-          ? 'N/A'
-          : null;
-
-      return {
-        title: fav.game_title,
-        imageUrl: fav.game_image,
-        platforms,
-        suitabilityScore: null,
-        mainStoryTime: mainTime,
-        completionistTime: null,
-        steamPlaytimeMinutes: stats?.playtimeMinutes ?? null,
-        achievements: ach,
-        genres: [],
-        reasonForPick: null,
-      };
-    });
-    setExportCard({ games: cardGames, label: 'My Wishlist' });
-  };
+  const {
+    activeTab, setActiveTab,
+    history, favorites,
+    loading, error,
+    expanded, setExpanded,
+    steamStats,
+    globalStats, statsLoading, statsError,
+    exportCard, setExportCard,
+    statsFetched,
+    isGameOwned,
+    handleRemoveFavorite,
+    handleRefreshStats,
+    handleExportQuizCard,
+    handleExportFavoritesCard,
+  } = useProfileData(user);
 
   return (
     <div className="animate-results w-full max-w-4xl mx-auto pointer-events-auto">
@@ -359,36 +86,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack }) => {
         <>
           {/* Tabs */}
           <div className="flex gap-2 mb-6 border-b border-white/5 pb-4">
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all border ${
-                activeTab === 'history'
-                  ? 'bg-blue-600/20 border-blue-500/50 text-blue-400'
-                  : 'bg-white/5 border-white/10 text-gray-500 hover:text-white hover:border-white/20'
-              }`}
-            >
+            <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} color="blue">
               Quiz History ({history.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('favorites')}
-              className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all border ${
-                activeTab === 'favorites'
-                  ? 'bg-pink-600/20 border-pink-500/50 text-pink-400'
-                  : 'bg-white/5 border-white/10 text-gray-500 hover:text-white hover:border-white/20'
-              }`}
-            >
+            </TabButton>
+            <TabButton active={activeTab === 'favorites'} onClick={() => setActiveTab('favorites')} color="pink">
               ♥ Wishlist ({favorites.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('stats')}
-              className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all border ${
-                activeTab === 'stats'
-                  ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400'
-                  : 'bg-white/5 border-white/10 text-gray-500 hover:text-white hover:border-white/20'
-              }`}
-            >
+            </TabButton>
+            <TabButton active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} color="emerald">
               📊 Steam Stats
-            </button>
+            </TabButton>
           </div>
 
           {/* Quiz History Tab */}
@@ -556,7 +262,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack }) => {
                       ? ['🖥️ PC']
                       : rawgParents
                           .slice(0, 5)
-                          .map((p) => PLATFORM_ICON[p.platform.slug] ?? p.platform.name);
+                          .map((p) => PLATFORM_ICONS[p.platform.slug] ?? p.platform.name);
 
                     // Steam store link: Steam games use direct app URL; RAWG PC games use search
                     const storeUrl = isSteam
@@ -888,7 +594,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack }) => {
     </div>
     {globalStats.countryCode && (
       <p className="text-gray-300 text-xs font-semibold">
-        {COUNTRY_FLAG[globalStats.countryCode] ?? '🌐'} {globalStats.countryCode}
+        {COUNTRY_FLAGS[globalStats.countryCode] ?? '🌐'} {globalStats.countryCode}
       </p>
     )}
   </div>
