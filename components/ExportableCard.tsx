@@ -120,9 +120,9 @@ const ExportableCard: React.FC<ExportableCardProps> = ({ user, games, label, gen
   };
 
   return (
-    /* Modal overlay */
+    /* Modal overlay — anchored to viewport top so it's immediately visible */
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[100] flex items-start justify-center bg-black/80 backdrop-blur-sm p-4 pt-8 overflow-y-auto"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="flex flex-col items-center gap-4 w-full max-w-xl">

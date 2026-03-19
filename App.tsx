@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { QuizAnswers, RecommendationResponse, RawgGame, Suggestion, SteamUser, GameFilters } from './types';
+import { useTours } from './hooks/useTours';
 import { getGameRecommendations, searchSpecificGame } from './services/aiFunctionality';
 import {
   searchGamesWithFilters,
@@ -26,6 +27,8 @@ const App: React.FC = () => {
   const [retryInfo, setRetryInfo] = useState<{ attempt: number; max: number } | null>(null);
   const [validationProgress, setValidationProgress] = useState<{ completed: number; total: number } | null>(null);
   const lastActionRef = useRef<(() => void) | null>(null);
+
+  const { startTour } = useTours();
 
   // RAWG results state
   const [rawgGames, setRawgGames] = useState<RawgGame[]>([]);
@@ -217,12 +220,16 @@ const App: React.FC = () => {
                 className="h-16 w-auto object-contain transition-opacity group-hover:opacity-80"
               />
             </div>
-            <SearchAutocomplete onSelect={handleSuggestionSelect} />
-            <LoginButton
-              user={steamUser}
-              onProfileClick={() => setView('profile')}
-              onLogout={handleLogout}
-            />
+            <div data-tour="search">
+              <SearchAutocomplete onSelect={handleSuggestionSelect} />
+            </div>
+            <div className="flex items-center gap-2" data-tour="profile">
+              <LoginButton
+                user={steamUser}
+                onProfileClick={() => setView('profile')}
+                onLogout={handleLogout}
+              />
+            </div>
           </div>
         </nav>
 
@@ -236,12 +243,15 @@ const App: React.FC = () => {
               <p className="text-gray-300 mb-12 max-w-xl mx-auto text-lg font-medium bg-black/40 backdrop-blur-sm p-4 rounded-2xl border border-white/5 select-none pointer-events-none">
                 Our AI analyzes thousands of Steam titles to find games that match your specific playstyle and time constraints.
               </p>
-              <button 
-                onClick={() => setView('quiz')}
-                 className="px-16 py-5 bg-[#66c0f4] hover:bg-[#00d2ff] text-[#0d1117] rounded-full font-black text-xl shadow-[0_0_40px_rgba(102,192,244,0.4)] transition-all active:scale-95 hover:scale-110 active:shadow-none"
-              >
-                START THE QUIZ
-              </button>
+              <div className="flex items-center justify-center gap-3">
+                <button 
+                  data-tour="quiz-start"
+                  onClick={() => setView('quiz')}
+                  className="px-16 py-5 bg-[#66c0f4] hover:bg-[#00d2ff] text-[#0d1117] rounded-full font-black text-xl shadow-[0_0_40px_rgba(102,192,244,0.4)] transition-all active:scale-95 hover:scale-110 active:shadow-none"
+                >
+                  START THE QUIZ
+                </button>
+              </div>
               {error && (
                 <div className="mt-12 p-4 bg-red-950/40 border border-red-500/30 text-red-200 font-mono text-sm rounded-lg max-w-md mx-auto backdrop-blur-md">
                   {error}
@@ -371,6 +381,16 @@ const App: React.FC = () => {
           )}
         </main>
       </div>
+
+      {/* Floating tour button — fixed bottom-right, always accessible */}
+      <button
+        onClick={startTour}
+        className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-[#66c0f4] hover:bg-[#00d2ff] text-[#0d1117] rounded-full font-black text-2xl shadow-[0_0_30px_rgba(102,192,244,0.4)] transition-all hover:scale-110 active:scale-95 flex items-center justify-center pointer-events-auto"
+        title="Take a tour"
+        aria-label="Take a tour"
+      >
+        ?
+      </button>
     </div>
   );
 };
