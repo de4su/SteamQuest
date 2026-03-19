@@ -67,7 +67,7 @@ export function useTours() {
         top: auto !important;
         left: auto !important;
         transform: none !important;
-        max-width: 520px !important;
+        max-width: 780px !important;
         width: calc(100vw - 48px) !important;
         font-family: inherit;
       }
