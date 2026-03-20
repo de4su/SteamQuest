@@ -33,6 +33,7 @@ function gifStep(opts: {
     style="
       display:block;
       width:100%;
+      max-width:780px;
       height:auto;
       border-radius:12px;
       box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(102,192,244,0.15);
