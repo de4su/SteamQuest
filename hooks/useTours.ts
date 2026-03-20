@@ -68,7 +68,7 @@ export function useTours() {
         left: auto !important;
         transform: none !important;
         max-width: 780px !important;
-        width: calc(100vw - 48px) !important;
+        width: min(780px, calc(100vw - 48px)) !important;
         font-family: inherit;
       }
       .shepherd-arrow {
