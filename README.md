@@ -204,5 +204,3 @@ CREATE TABLE IF NOT EXISTS steam_stats_cache (
 [MIT](./LICENSE)
 
 ---
-
-> *Developed by [de4su](https://github.com/de4su) — University Project 2026*
