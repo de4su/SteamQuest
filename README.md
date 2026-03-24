@@ -1,169 +1,183 @@
-# SteamQuest: AI-Powered Game Discovery Engine
+<img src="/public/logo.png" alt="SteamQuest Logo" height="192" style="vertical-align:middle;margin-left:12px" />
 
-**SteamQuest** is an AI-powered game discovery application that helps users find their next favorite game across **all gaming platforms** — not just Steam. It combines a Groq LLM recommendation engine, a universal cross-platform game search powered by RAWG, a smart favorites system with purchase links, and deep Steam integration.
 
-## Core Features
 
-- **Personalized AI Recommendations** — A 4-step quiz (genre → playstyle → session length → keywords) sends your preferences to the Groq LLM (llama-3.3-70b-versatile), which returns up to 10 ranked game suggestions with match percentages, playtime estimates, Steam prices, and GG.deals links.
-- **Universal Platform Search** — Search spans every platform RAWG covers: PC, PlayStation, Xbox, Nintendo, iOS, Android, and more. You are not limited to Steam games.
-- **Smart Favorites System** — Add *any* game found via search (regardless of platform) to your favorites list. Favorites stored in Supabase display Steam store links and GG.deals cheapest-price links so you can buy or wishlist them later.
-- **Steam Login & Integration** — Sign in with Steam to unlock your profile page, quiz history, and the "exclude owned games" filter on quiz results.
-- **Advanced Search Filters** — Filter by platform, genre, tag, Metacritic score, and sort order via the search filter panel.
-- **Quiz History & PNG Export** — Completed quizzes are saved to your Supabase profile. Expand any quiz result and export it as a shareable PNG card (3-column grid layout). Your full favorites list can also be exported as a PNG.
-- **Live Steam Stats** — The Steam Stats tab on your profile shows total games, playtime, Steam level, recently played, and top played games — fetched live from the Steam API with Supabase caching.
-- **Exclude Owned Games** — Opt to remove games you already own on Steam from quiz recommendations (requires Steam login and a public Steam profile).
-- **"Already Owned" Badge** — Games you own on Steam are highlighted with a ✓ Owned badge in your quiz history and favorites, replacing the store links.
+> **Next-gen AI-powered Steam game discovery platform**
 
-## Search & Favorites — Primary Use Case
+---
 
-The **Search** page is a key feature of SteamQuest. Users can search for any game from any console or platform (e.g., a PlayStation exclusive, a mobile game, or a PC title) and add it to their favorites. The favorites list then shows:
+## Table of Contents
+- [Overview](#overview)
+- [Features](#features)
+- [Screenshots & Demos](#screenshots--demos)
+- [How It Works](#how-it-works)
+- [Technical Architecture](#technical-architecture)
+- [Setup & Running Locally](#setup--running-locally)
+- [Deployment](#deployment)
+- [Database Schemas](#database-schemas)
+- [Credits & Acknowledgements](#credits--acknowledgements)
+- [License](#license)
 
-- **Steam store link** with current price (if the game is available on Steam)
-- **GG.deals link** with the cheapest reseller price found
+---
 
-This lets users build a cross-platform wishlist and easily find the best place to buy each game.
+## Overview
+SteamQuest is an intelligent game discovery platform that helps users explore and find their next favorite Steam game. By combining a smart interactive quiz with a Groq LLM-powered recommendation engine, universal search backed by the RAWG database, real-time Steam stats and personalization, and a rich, modern UI, SteamQuest aims to be the ultimate discovery engine for gamers.
 
-## Quiz Options
+![UI screenshot](./public/gifs/LandingPage.png)  
+*Landing Page*
 
-The quiz walks you through four steps:
+---
 
-| Step | Question | Options |
-|------|----------|---------|
-| 1 | **Genre** | Action, RPG, Strategy, Indie, Adventure, Simulation, Horror, Puzzle, Sports, Racing (multi-select) |
-| 2 | **Playstyle** | Casual · Balanced · Hardcore |
-| 3 | **Session length** | Short (< 1 h) · Medium (1–3 h) · Long (3 h+) |
-| 4 | **Specific keywords** | Free-text (themes, vibes, settings) + optional *"Exclude owned games"* checkbox |
+## Features
 
-After submission the AI generates up to 10 ranked recommendations with match percentage, playtime estimates, Steam price, and a deal link.
+### 🧠 AI Quiz-based Recommendations
+- Personalized game suggestions using a dynamic multi-step quiz covering genre, playstyle, time, keywords, and difficulty.
+- Exclude games you already own (requires Steam login).
+- Results include playtime estimates, match percentage, Steam/Deal links, and reasoning via Groq LLM.
 
-## Exporting a Card (PNG)
+### 🔍 Universal Cross-Platform Game Search
+- Find any PC or console title with fuzzy/keyword search.
+- Filter by genre, difficulty, developer, publisher, etc.
+- Results include real/estimated price (Steam/GG.deals), platform icons, and full imagery.
 
-Once you have quiz results or favorites saved to your profile:
+### ❤️ Smart Favorites & Exportable Cards
+- Save favorites from search or quiz results to your profile.
+- Export your quiz or wishlist as a compact PNG card (for sharing!) with genre and platform highlights.
+- Example:  
+  <img src="./public/gifs/CardExample.png" alt="Exported Card PNG" width="500">
 
-1. Open your **Profile** page (top-right corner after logging in with Steam).
-2. In the **Quiz History** tab, expand any quiz result and click **⬇ Export as PNG**.
-3. In the **♥ Wishlist** tab, click **⬇ Export Wishlist as PNG**.
-4. A preview of the card appears — click **Save as PNG** to download the image.
 
-Cards use a compact **3-column grid layout** so up to 12 games fit per image. Quiz exports include a **Genres** header strip listing the genres chosen for that session (e.g., "Genres: Action · RPG"). Wishlist exports show all real platform icons for each game.
+### 👤 Deep Steam Integration
+- **Login with Steam** (OpenID) for full personalization.
+- Profile page shows:
+  - Game library stats: total games, played/unplayed split, total/average playtime, Valve XP/Level, account country/age.
+  - Recently played (this week) & top played (all time).
+- Quiz/History and Wishlist tabs show **already owned** games via automatic badge.
 
-## Static Assets
+### 🏆 Playtime & Achievement Tracking
+- Displays your playtime and achievement progress for nearly all games.
+- Real data fetched live from Steam APIs when possible, with fallback to averages if private.
+- Example:  
+  ![Profile](./public/gifs/achivements.png)
 
-The app logo is referenced as `/logo.png` in `App.tsx`, `components/ExportableCard.tsx`, and `index.html`. For Vite to serve it at that path, the file must be placed in the `public/` folder:
+### 🖼️ Modern UI & Visuals
+- Responsive design using React 19 & Tailwind CSS.
+- Card/grid layout, hoverable animated game screens, dark theme, hex background, smooth transitions.
+- Interactive feature tours with GIF demos:
 
-```
-public/logo.png
-```
+---
 
-Copy `logo.png` from the repo root into the `public/` directory before running or deploying the app. The `public/` folder is tracked via a `.gitkeep` placeholder — the binary `logo.png` file itself is not committed to git.
+## How It Works
 
-## Run Locally
+- **User Flow:**  
+  1. Login with Steam (optional).
+  2. Take the personalized quiz, or use raw search.
+  3. Review recommendations with match % and buy links.
+  4. Save favorites, check owned status, export results as PNG.
+  5. Explore your Steam stats, playtime, and achievements via your profile.
 
-**Prerequisites:** Node.js
+- **AI Recommendation Pipeline:**  
+  - Answers hash → Supabase cache lookup → If not found: prompt Groq Llama-3, validate all results with Steam API (AppID/title matching), enrich with up-to-date deals and images from Steam & RAWG, filter owned, cache for instant repeat loads.
+
+- **Steam Data:**  
+  - Uses secure OpenID for auth; stats and playtime require public profiles. No third-party key sharing.
+
+- **PNG Card Export:**  
+  - Built with [html-to-image](https://github.com/bubkoo/html-to-image); exports 3-column visually detailed images of your quiz/wishlist for easy sharing.
+
+---
+
+## Technical Architecture
+
+**Frontend**
+- React 19 (with functional hooks + modern state management)
+- TypeScript for strict typing
+- Tailwind CSS for all styling
+- Vite for quick dev/build
+
+**Backend/APIs**
+- Vercel serverless API routes:
+    - `/api/auth/steam` (login), `/api/auth/me`, `/api/auth/logout`
+    - `/api/steam-library`, `/api/steam-playtime`, `/api/steam-stats`, `/api/steam-appdetails`
+- Groq LLM API (powers quiz recommendations)
+- RAWG API (universal game database)
+- GG.deals API (best PC game pricing, optional)
+- Supabase (database for profiles, quiz cache, favorites, stats)
+
+**Database**
+- Quiz results, user data, Steam stats are all cached in Supabase tables with efficient keying & index for low latency.
+
+#### Key Packages
+- `@supabase/supabase-js` (profiles, stats, quiz results)
+- `react`, `react-dom`, `tailwindcss`
+- `html-to-image`
+- `shepherd.js` (interactive feature tours)
+- [See `package.json`](./package.json) for full dependency list
+
+---
+
+## Setup & Running Locally
+
+**Prerequisites:** Node.js 18+
 
 1. Install dependencies:
-   ```bash
+   ```sh
    npm install
    ```
-
-2. Set up your environment:
-   Create a `.env.local` file in the root directory with the following variables:
-
-   ```env
-   # Groq LLM (required for AI game recommendations)
-   VITE_GROQ_API_KEY=your_groq_api_key
-
-   # Steam (required for Steam login and user profiles)
-   STEAM_API_KEY=your_steam_web_api_key
-   AUTH_SECRET=a_random_secret_string_at_least_32_chars
-   APP_URL=http://localhost:3000
-
-   # RAWG (required for universal game search)
-   VITE_RAWG_API_KEY=your_rawg_api_key
-
-   # Supabase (required for quiz result caching, favorites, and profile history)
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-   # GG.deals (optional — enables cheapest-price display on game cards)
-   VITE_GGDEALS_API_KEY=your_ggdeals_api_key
-   ```
-
-   - **Groq API key**: [console.groq.com](https://console.groq.com/) — free tier available
-   - **RAWG API key**: [rawg.io/apidocs](https://rawg.io/apidocs) — free tier available
-   - **Steam API key**: [Steam Web API](https://steamcommunity.com/dev/apikey)
-   - **Supabase**: [supabase.com](https://supabase.com/) — create a project and copy the URL & anon key from *Settings → API*
-   - **GG.deals API key**: [gg.deals](https://gg.deals/) — optional, enables live price data
-
-3. Create the required Supabase tables:
-
-   Run the following SQL in your Supabase SQL editor (*Database → SQL Editor*):
-
+2. Create your environment config:
+   - Copy `.env.local.example` to `.env.local` and set:
+     ```
+     VITE_GROQ_API_KEY=your_groq_key
+     VITE_RAWG_API_KEY=your_rawg_key
+     # optional: VITE_GGDEALS_API_KEY
+     VITE_SUPABASE_URL=your_supabase_url
+     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+     STEAM_API_KEY=your_steam_web_api_key
+     AUTH_SECRET=at_least_32_random_chars
+     APP_URL=http://localhost:3000
+     ```
+3. Prepare Supabase tables via:
    ```sql
-   CREATE TABLE IF NOT EXISTS quiz_results (
-     id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-     steam_id    text        NOT NULL,
-     answers_hash text       NOT NULL,
-     answers     jsonb       NOT NULL,
-     results     jsonb       NOT NULL,
-     created_at  timestamptz DEFAULT now()
-   );
-
-   CREATE UNIQUE INDEX IF NOT EXISTS quiz_results_steam_id_answers_hash
-     ON quiz_results (steam_id, answers_hash);
+   CREATE TABLE IF NOT EXISTS quiz_results (...);
+   CREATE TABLE IF NOT EXISTS steam_stats_cache (...);
    ```
-
-4. Run the development server:
-   ```bash
+   _Full schema in [Database Schemas](#database-schemas)._
+4. Place `logo.png` in `/public/` and all screenshots/GIFs in `/gifs/`.
+5. Start dev server:
+   ```sh
    npm run dev
    ```
+6. Visit [http://localhost:3000](http://localhost:3000)
 
-5. Open your browser and navigate to `http://localhost:3000`
+> **Steam login note:** Use [ngrok](https://ngrok.com/) or deploy to Vercel for working OpenID callback.
 
-> **Note for Steam login during local development:** Steam OpenID requires a publicly reachable callback URL.  
-> Either use a tunnel like [ngrok](https://ngrok.com/) (`ngrok http 3000`) and set `APP_URL` to the tunnel URL, or test the Steam login flow on your Vercel deployment where the callback URL is public.
+---
 
-## Vercel Deployment
+## Deployment
 
-All environment variables listed above (except `APP_URL` which should be your Vercel deployment URL, e.g. `https://yourapp.vercel.app`) must be configured in your Vercel project settings under *Settings → Environment Variables*.
+- **Vercel recommended.**  
+- Set **all** env variables in dashboard.  
+- `STEAM_API_KEY` and `AUTH_SECRET` are never exposed to the browser.
 
-The `STEAM_API_KEY` and `AUTH_SECRET` variables are **server-side only** (no `VITE_` prefix) and are never exposed to the browser.
+---
 
-## Excluding Owned Games from Quiz Results
+## Database Schemas
 
-At the last step of the quiz you will see an **"Exclude games I already own"** checkbox.
+### `quiz_results`
+```sql
+CREATE TABLE IF NOT EXISTS quiz_results (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  steam_id     text        NOT NULL,
+  answers_hash text        NOT NULL,
+  answers      jsonb       NOT NULL,
+  results      jsonb       NOT NULL,
+  created_at   timestamptz DEFAULT now()
+);
 
-- **Requires Steam login.** If you are not signed in, the checkbox is replaced by a prompt to log in with Steam.
-- When checked, the app calls the server-side `/api/steam-library` endpoint, which uses your `STEAM_API_KEY` to query the Steam Web API for your owned titles. Any recommended game already in your library is removed from the results.
-- The underlying recommendations are still cached as normal; filtering is applied at display time so toggling the option costs no extra AI calls.
-
-## Steam Playtime & Achievements on Profile
-
-When you open your Profile page:
-
-- The app calls `/api/steam-playtime` with your Steam ID and the app IDs of every game in your quiz history and wishlist.
-- **Playtime** is fetched strictly from `IPlayerService/GetOwnedGames` — shown as green "🎮 Xh played" text next to each game. If you don't own the game or your profile is private, a "⏱ ~10h avg play time" fallback is shown instead.
-- **Achievement progress** is fetched from `ISteamUserStats/GetPlayerAchievements` — shown as "🏆 unlocked / total". If no achievement data is available (not owned, private profile, or game has no achievements), "🏆 Achievements: N/A" is shown instead.
-- Both fields require your Steam profile and game stats to be **public**. No fake or randomly assigned data is ever displayed — all values come directly from the Steam API.
-
-## Steam Stats Tab
-
-The **📊 Steam Stats** tab on your Profile page provides a comprehensive snapshot of your Steam account, loaded lazily when you first click the tab.
-
-### What's shown
-
-- **Overview cards**: total games, number of games played (with percentage), total playtime, and average playtime per played game.
-- **Steam Level card**: your current level with an XP progress bar and XP-to-next-level counter.
-- **Recently Played**: up to 5 games you've played recently (this week + all-time hours).
-- **Top Played**: your 5 most-played games by all-time hours.
-- **Account info strip**: country flag and Steam account age in years.
-
-### Caching
-
-Stats are stored in the Supabase `steam_stats_cache` table so they survive page refreshes and tab switches without extra API calls. Use the **⟳ Refresh Stats** button to fetch fresh data from Steam and update the cache.
-
-Run the following SQL in your Supabase SQL editor to create the required table:
-
+CREATE UNIQUE INDEX IF NOT EXISTS quiz_results_steam_id_answers_hash
+  ON quiz_results (steam_id, answers_hash);
+```
+### `steam_stats_cache`
 ```sql
 CREATE TABLE IF NOT EXISTS steam_stats_cache (
   steam_id   text        PRIMARY KEY,
@@ -172,25 +186,23 @@ CREATE TABLE IF NOT EXISTS steam_stats_cache (
 );
 ```
 
-The `/api/steam-stats` endpoint makes exactly **4 parallel Steam API calls** (no per-game fan-out), so it is fast regardless of library size.
+---
 
-## "Already Owned" Badge
+## Credits & Acknowledgements
 
-In the **Quiz History** and **♥ Wishlist** tabs, games you already own on Steam are highlighted with a green **✓ Owned** badge in place of the Steam/Deal store links. Ownership is determined from:
+- Game & platform data by [RAWG](https://rawg.io/apidocs)
+- PC pricing via [GG.deals](https://gg.deals/)
+- AI quiz powered by [Groq LLM API](https://console.groq.com/)
+- Steam integration: [Steam Web API](https://partner.steamgames.com/doc/webapi_overview)
+- PNG exports: [html-to-image](https://github.com/bubkoo/html-to-image)
+- Built with [React](https://react.dev/), [Tailwind CSS](https://tailwindcss.com/), [Vite](https://vitejs.dev/), [Supabase](https://supabase.com/), and [Vercel](https://vercel.com/).
 
-1. Per-game playtime data fetched by `/api/steam-playtime` (populated for games in your history/wishlist).
-2. The `ownedAppIds` list from `/api/steam-stats` (populated after opening the Steam Stats tab), which covers your entire library — useful as a fallback for games not yet checked individually.
+---
 
-The badge only appears for Steam-sourced games. RAWG-sourced favorites continue to show their regular store links.
+## License
 
-## Tech Stack
+[MIT](./LICENSE)
 
-- **Frontend**: React 19, TypeScript, Tailwind CSS
-- **Build tool**: Vite
-- **AI / LLM**: [Groq](https://console.groq.com/) (llama-3.3-70b-versatile) — powers quiz recommendations and game search
-- **Game database**: [RAWG API](https://rawg.io/apidocs) — universal cross-platform game search
-- **Steam integration**: Steam OpenID (auth), Steam Web API (library, playtime, achievements, stats)
-- **Pricing**: [GG.deals](https://gg.deals/) API — cheapest reseller price for PC games
-- **Backend / database**: [Supabase](https://supabase.com/) — profiles, favorites, quiz history, Steam stats cache
-- **PNG export**: [html-to-image](https://github.com/bubkoo/html-to-image)
+---
 
+> *Developed by [de4su](https://github.com/de4su) — University Project 2026*
