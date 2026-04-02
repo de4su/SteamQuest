@@ -199,8 +199,3 @@ CREATE TABLE IF NOT EXISTS steam_stats_cache (
 
 ---
 
-## License
-
-[MIT](./LICENSE)
-
----
