@@ -16,7 +16,6 @@
 - [Deployment](#deployment)
 - [Database Schemas](#database-schemas)
 - [Credits & Acknowledgements](#credits--acknowledgements)
-- [License](#license)
 
 ---
 
@@ -30,37 +29,37 @@ SteamQuest is an intelligent game discovery platform that helps users explore an
 
 ## Features
 
-### 🧠 AI Quiz-based Recommendations
+###  AI Quiz-based Recommendations
 - Personalized game suggestions using a dynamic multi-step quiz covering genre, playstyle, time, keywords, and difficulty.
 - Exclude games you already own (requires Steam login).
 - Results include playtime estimates, match percentage, Steam/Deal links, and reasoning via Groq LLM.
 
-### 🔍 Universal Cross-Platform Game Search
+###  Universal Cross-Platform Game Search
 - Find any PC or console title with fuzzy/keyword search.
 - Filter by genre, difficulty, developer, publisher, etc.
 - Results include real/estimated price (Steam/GG.deals), platform icons, and full imagery.
 
-### ❤️ Smart Favorites & Exportable Cards
+###  Smart Favorites & Exportable Cards
 - Save favorites from search or quiz results to your profile.
 - Export your quiz or wishlist as a compact PNG card (for sharing!) with genre and platform highlights.
 - Example:  
   <img src="./public/gifs/CardExample.png" alt="Exported Card PNG" width="500">
 
 
-### 👤 Deep Steam Integration
+###  Deep Steam Integration
 - **Login with Steam** (OpenID) for full personalization.
 - Profile page shows:
   - Game library stats: total games, played/unplayed split, total/average playtime, Valve XP/Level, account country/age.
   - Recently played (this week) & top played (all time).
 - Quiz/History and Wishlist tabs show **already owned** games via automatic badge.
 
-### 🏆 Playtime & Achievement Tracking
+###  Playtime & Achievement Tracking
 - Displays your playtime and achievement progress for nearly all games.
 - Real data fetched live from Steam APIs when possible, with fallback to averages if private.
 - Example:  
   ![Profile](./public/gifs/achivements.png)
 
-### 🖼️ Modern UI & Visuals
+###  Modern UI & Visuals
 - Responsive design using React 19 & Tailwind CSS.
 - Card/grid layout, hoverable animated game screens, dark theme, hex background, smooth transitions.
 - Interactive feature tours with GIF demos:
